@@ -1,0 +1,6 @@
+Dockerfile*
+.*ignore
+
+# Documentation and other stuff
+swagger/
+postgres-data/
