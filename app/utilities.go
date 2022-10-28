@@ -7,6 +7,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 func GetenvOrDefault(key, default_ string) string {
@@ -32,7 +33,15 @@ func ConnectToPostgreSQLWithEnv() (*gorm.DB, error) {
 		GetenvOrDefault("POSTGRES_DB_NAME", ""),
 		port,
 	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	config := gorm.Config{}
+	userSchema := os.Getenv("POSTGRES_USER_SCHEMA")
+	if userSchema != "" {
+		config.NamingStrategy = schema.NamingStrategy{
+			TablePrefix: fmt.Sprintf("%s.", userSchema),
+		}
+	}
+
+	db, err := gorm.Open(postgres.Open(dsn), &config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to the database: %v", err)
 	}
