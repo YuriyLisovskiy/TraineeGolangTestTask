@@ -17,8 +17,13 @@ func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 	pageParameter := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pageParameter)
 	if err != nil {
-		a.sendBadRequest(c, "the \"page\" parameter is required to be an integer value")
+		a.sendBadRequest(c, "the \"page\" parameter is required to be an integer number")
 		log.Println(err)
+		return
+	}
+
+	if page <= 0 {
+		a.sendBadRequest(c, "the \"page\" parameter is required to be a positive integer number")
 		return
 	}
 
@@ -93,7 +98,7 @@ func (a *Application) handleTransactionsAsCsv(c *gin.Context) {
 	flusher.Flush()
 }
 
-func (a *Application) handleUpload(c *gin.Context) {
+func (a *Application) handleTransactionsUpload(c *gin.Context) {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
 		a.sendBadRequest(c, err.Error())
@@ -142,5 +147,5 @@ func (a *Application) handleUpload(c *gin.Context) {
 	}
 
 	log.Printf("File %s was uploaded.\n", fileHeader.Filename)
-	c.JSON(http.StatusOK, gin.H{"row_count": uploadedRowsCount})
+	c.JSON(http.StatusCreated, gin.H{"row_count": uploadedRowsCount})
 }

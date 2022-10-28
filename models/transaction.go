@@ -14,27 +14,27 @@ const (
 )
 
 type Transaction struct {
-	Id                 uint64 `gorm:"primaryKey"`
-	RequestId          uint64
-	TerminalId         uint64
-	PartnerObjectId    uint16
-	AmountTotal        float32
-	AmountOriginal     float32
-	CommissionPS       float32
-	CommissionClient   float32
-	CommissionProvider float32
-	DateInput          time.Time // YYYY-MM-DD HH:MM:SS
-	DatePost           time.Time // YYYY-MM-DD HH:MM:SS
-	Status             string    `gorm:"size:8;check:status IN ('accepted', 'declined')"`
-	PaymentType        string    `gorm:"size:4;check:payment_type IN ('cash', 'card')"`
-	PaymentNumber      string    `gorm:"size:10;check:payment_number ~ 'PS[0-9]{8}'"`
-	ServiceId          uint64
-	Service            string
-	PayeeId            uint64
-	PayeeName          string
-	PayeeBankMfo       uint32
-	PayeeBankAccount   string `gorm:"size:17;check:payee_bank_account ~ 'UA[0-9]{15}'"`
-	PaymentNarrative   string
+	Id                 uint64    `gorm:"primaryKey" json:"transaction_id"`
+	RequestId          uint64    `json:"request_id"`
+	TerminalId         uint64    `json:"terminal_id"`
+	PartnerObjectId    uint16    `json:"partner_object_id"`
+	AmountTotal        float32   `json:"amount_total"`
+	AmountOriginal     float32   `json:"amount_original"`
+	CommissionPS       float32   `json:"commission_ps"`
+	CommissionClient   float32   `json:"commission_client"`
+	CommissionProvider float32   `json:"commission_provider"`
+	DateInput          time.Time `json:"date_input"` // YYYY-MM-DD HH:MM:SS
+	DatePost           time.Time `json:"date_post"`  // YYYY-MM-DD HH:MM:SS
+	Status             string    `gorm:"size:8;check:status IN ('accepted', 'declined')" json:"status"`
+	PaymentType        string    `gorm:"size:4;check:payment_type IN ('cash', 'card')" json:"payment_type"`
+	PaymentNumber      string    `gorm:"size:10;check:payment_number ~ 'PS[0-9]{8}'" json:"payment_number"`
+	ServiceId          uint64    `json:"service_id"`
+	Service            string    `json:"service"`
+	PayeeId            uint64    `json:"payee_id"`
+	PayeeName          string    `json:"payee_name"`
+	PayeeBankMfo       uint32    `json:"payee_bank_mfo"`
+	PayeeBankAccount   string    `gorm:"size:17;check:payee_bank_account ~ 'UA[0-9]{15}'" json:"payee_bank_account"`
+	PaymentNarrative   string    `json:"payment_narrative"`
 }
 
 func (t *Transaction) ToCsvRow() string {

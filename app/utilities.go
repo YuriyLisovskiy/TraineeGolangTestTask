@@ -56,13 +56,13 @@ func getenvOrDefault(key, default_ string) string {
 
 func buildFilters(c *gin.Context) ([]repositories.TransactionFilter, error) {
 	var filters []repositories.TransactionFilter
-	if stringId := c.DefaultQuery("id", ""); stringId != "" {
-		id, err := strconv.ParseUint(stringId, 10, 64)
+	if stringTransactionId := c.DefaultQuery("transaction_id", ""); stringTransactionId != "" {
+		id, err := strconv.ParseUint(stringTransactionId, 10, 64)
 		if err != nil {
 			return nil, err
 		}
 
-		filters = append(filters, repositories.FilterById(id))
+		filters = append(filters, repositories.FilterByTransactionId(id))
 	}
 
 	if terminalIds := c.QueryArray("terminal_id"); len(terminalIds) > 0 {
@@ -96,10 +96,10 @@ func buildFilters(c *gin.Context) ([]repositories.TransactionFilter, error) {
 		}
 	}
 
-	if fromString := c.DefaultQuery("from", ""); fromString != "" {
-		toString := c.DefaultQuery("to", "")
+	if fromString := c.DefaultQuery("date_post_from", ""); fromString != "" {
+		toString := c.DefaultQuery("date_post_to", "")
 		if toString == "" {
-			return nil, errors.New("parameter \"to\" is required when using \"from\"")
+			return nil, errors.New("parameter \"date_post_to\" is required when using \"date_post_from\"")
 		}
 
 		from, err := time.Parse(models.TimeLayout, fromString)
@@ -112,7 +112,7 @@ func buildFilters(c *gin.Context) ([]repositories.TransactionFilter, error) {
 			return nil, err
 		}
 
-		filters = append(filters, repositories.FilterByTimeRange(from, to))
+		filters = append(filters, repositories.FilterByDatePostTimeRange(from, to))
 	}
 
 	if paymentNarrative := c.DefaultQuery("payment_narrative", ""); paymentNarrative != "" {

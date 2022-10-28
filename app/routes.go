@@ -5,8 +5,8 @@ import (
 )
 
 func (a *Application) addRoutes(r *gin.Engine) {
-	api := r.Group("/api")
-	api.GET("/transactions/json", a.handleTransactionsAsJson)
-	api.GET("/transactions/csv", a.handleTransactionsAsCsv)
-	api.POST("/upload", a.handleUpload)
+	apiTransactions := r.Group("/api/transactions")
+	apiTransactions.GET("/json", a.handleTransactionsAsJson)
+	apiTransactions.GET("/csv", a.handleTransactionsAsCsv)
+	apiTransactions.POST("/upload", a.handleTransactionsUpload)
 }

@@ -85,7 +85,7 @@ func (tr *TransactionRepositoryImpl) ForEach(
 
 type TransactionFilter func(tx *gorm.DB)
 
-func FilterById(id uint64) TransactionFilter {
+func FilterByTransactionId(id uint64) TransactionFilter {
 	return func(tx *gorm.DB) {
 		tx.Where("id = ?", id)
 	}
@@ -109,7 +109,7 @@ func FilterByPaymentType(paymentType string) TransactionFilter {
 	}
 }
 
-func FilterByTimeRange(from, to time.Time) TransactionFilter {
+func FilterByDatePostTimeRange(from, to time.Time) TransactionFilter {
 	return func(tx *gorm.DB) {
 		tx.Where("date_post BETWEEN ? AND ?", from, to)
 	}
