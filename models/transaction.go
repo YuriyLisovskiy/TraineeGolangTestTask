@@ -39,7 +39,7 @@ type Transaction struct {
 
 func (t *Transaction) ToCsvRow() string {
 	return fmt.Sprintf(
-		"%d,%d,%d,%d,%f,%f,%f,%f,%f,%s,%s,%s,%s,%s,%d,%s,%d,%s,%d,%s,%s",
+		"%d,%d,%d,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%s,%s,%s,%s,%s,%d,%s,%d,%s,%d,%s,%s",
 		t.Id,
 		t.RequestId,
 		t.TerminalId,

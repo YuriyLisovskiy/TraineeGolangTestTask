@@ -1,36 +1,32 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
+	"TraineeGolangTestTask/models"
+	"TraineeGolangTestTask/repositories"
+	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
 
-func GetenvOrDefault(key, default_ string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		return default_
-	}
-
-	return val
-}
-
 func ConnectToPostgreSQLWithEnv() (*gorm.DB, error) {
-	port, err := strconv.Atoi(GetenvOrDefault("POSTGRES_PORT", "5432"))
+	port, err := strconv.Atoi(getenvOrDefault("POSTGRES_PORT", "5432"))
 	if err != nil {
 		return nil, err
 	}
 
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
-		GetenvOrDefault("POSTGRES_HOST", "localhost"),
-		GetenvOrDefault("POSTGRES_USER", "postgres"),
-		GetenvOrDefault("POSTGRES_PASSWORD", ""),
-		GetenvOrDefault("POSTGRES_DB_NAME", ""),
+		getenvOrDefault("POSTGRES_HOST", "localhost"),
+		getenvOrDefault("POSTGRES_USER", "postgres"),
+		getenvOrDefault("POSTGRES_PASSWORD", ""),
+		getenvOrDefault("POSTGRES_DB_NAME", ""),
 		port,
 	)
 	config := gorm.Config{}
@@ -47,4 +43,81 @@ func ConnectToPostgreSQLWithEnv() (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func getenvOrDefault(key, default_ string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		return default_
+	}
+
+	return val
+}
+
+func buildFilters(c *gin.Context) ([]repositories.TransactionFilter, error) {
+	var filters []repositories.TransactionFilter
+	if stringId := c.DefaultQuery("id", ""); stringId != "" {
+		id, err := strconv.ParseUint(stringId, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		filters = append(filters, repositories.FilterById(id))
+	}
+
+	if terminalIds := c.QueryArray("terminal_id"); len(terminalIds) > 0 {
+		var ids []uint64
+		for _, stringId := range terminalIds {
+			id, err := strconv.ParseUint(stringId, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+
+			ids = append(ids, id)
+		}
+		filters = append(filters, repositories.FilterByTerminalId(ids))
+	}
+
+	if status := c.DefaultQuery("status", ""); status != "" {
+		switch status {
+		case "accepted", "declined":
+			filters = append(filters, repositories.FilterByStatus(status))
+		default:
+			return nil, errors.New("value of \"status\" parameter should be either \"accepted\" or \"declined\"")
+		}
+	}
+
+	if paymentType := c.DefaultQuery("payment_type", ""); paymentType != "" {
+		switch paymentType {
+		case "cash", "card":
+			filters = append(filters, repositories.FilterByPaymentType(paymentType))
+		default:
+			return nil, errors.New("value of \"payment_type\" parameter should be either \"cash\" or \"card\"")
+		}
+	}
+
+	if fromString := c.DefaultQuery("from", ""); fromString != "" {
+		toString := c.DefaultQuery("to", "")
+		if toString == "" {
+			return nil, errors.New("parameter \"to\" is required when using \"from\"")
+		}
+
+		from, err := time.Parse(models.TimeLayout, fromString)
+		if err != nil {
+			return nil, err
+		}
+
+		to, err := time.Parse(models.TimeLayout, toString)
+		if err != nil {
+			return nil, err
+		}
+
+		filters = append(filters, repositories.FilterByTimeRange(from, to))
+	}
+
+	if paymentNarrative := c.DefaultQuery("payment_narrative", ""); paymentNarrative != "" {
+		filters = append(filters, repositories.ContainsTextInPaymentNarrative(paymentNarrative))
+	}
+
+	return filters, nil
 }

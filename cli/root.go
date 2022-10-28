@@ -2,8 +2,6 @@ package cli
 
 import (
 	"log"
-	"os"
-	"strconv"
 
 	"TraineeGolangTestTask/app"
 	"TraineeGolangTestTask/repositories"
@@ -38,22 +36,11 @@ func runRootCommand(*cobra.Command, []string) error {
 	application := app.Application{
 		TransactionRepository: repositories.NewTransactionRepository(db),
 	}
-	pageSizeString := os.Getenv("APP_PAGE_SIZE")
-	if pageSizeString != "" {
-		application.PageSize, err = strconv.Atoi(pageSizeString)
-		if err != nil {
-			return err
-		}
-	} else {
-		application.PageSize = 30
-	}
-
 	err = application.Configure()
 	if err != nil {
 		return err
 	}
 
 	log.Printf("Serving at %s\n", addressArg)
-
 	return application.Execute(addressArg)
 }

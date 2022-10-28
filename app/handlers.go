@@ -7,98 +7,28 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"TraineeGolangTestTask/models"
 	"TraineeGolangTestTask/repositories"
 	"github.com/gin-gonic/gin"
 )
 
-func makeFilters(c *gin.Context) ([]repositories.TransactionFilter, error) {
-	var filters []repositories.TransactionFilter
-	if stringId := c.DefaultQuery("id", ""); stringId != "" {
-		id, err := strconv.ParseUint(stringId, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		filters = append(filters, repositories.FilterById(id))
-	}
-
-	if terminalIds := c.QueryArray("terminal_id"); len(terminalIds) > 0 {
-		var ids []uint64
-		for _, stringId := range terminalIds {
-			id, err := strconv.ParseUint(stringId, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-
-			ids = append(ids, id)
-		}
-		filters = append(filters, repositories.FilterByTerminalId(ids))
-	}
-
-	if status := c.DefaultQuery("status", ""); status != "" {
-		switch status {
-		case "accepted", "declined":
-			filters = append(filters, repositories.FilterByStatus(status))
-		default:
-			return nil, errors.New("value of \"status\" parameter should be either \"accepted\" or \"declined\"")
-		}
-	}
-
-	if paymentType := c.DefaultQuery("payment_type", ""); paymentType != "" {
-		switch paymentType {
-		case "cash", "card":
-			filters = append(filters, repositories.FilterByPaymentType(paymentType))
-		default:
-			return nil, errors.New("value of \"payment_type\" parameter should be either \"cash\" or \"card\"")
-		}
-	}
-
-	if fromString := c.DefaultQuery("from", ""); fromString != "" {
-		toString := c.DefaultQuery("to", "")
-		if toString == "" {
-			return nil, errors.New("parameter \"to\" is required when using \"from\"")
-		}
-
-		from, err := time.Parse(models.TimeLayout, fromString)
-		if err != nil {
-			return nil, err
-		}
-
-		to, err := time.Parse(models.TimeLayout, toString)
-		if err != nil {
-			return nil, err
-		}
-
-		filters = append(filters, repositories.FilterByTimeRange(from, to))
-	}
-
-	if paymentNarrative := c.DefaultQuery("payment_narrative", ""); paymentNarrative != "" {
-		filters = append(filters, repositories.ContainsTextInPaymentNarrative(paymentNarrative))
-	}
-
-	return filters, nil
-}
-
 func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 	pageParameter := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pageParameter)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "the \"page\" parameter is required to be an integer value"})
+		a.sendBadRequest(c, "the \"page\" parameter is required to be an integer value")
 		log.Println(err)
 		return
 	}
 
-	filters, err := makeFilters(c)
+	filters, err := buildFilters(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		log.Println(err)
+		a.sendBadRequest(c, err.Error())
 		return
 	}
 
-	transactions := a.TransactionRepository.Filter(filters, page, a.PageSize)
+	transactions := a.TransactionRepository.Filter(filters, page, a.pageSize)
 	var (
 		previousPage *int
 		nextPage     *int
@@ -109,7 +39,7 @@ func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 	}
 
 	transactionsLen := len(transactions)
-	if transactionsLen == a.PageSize {
+	if transactionsLen == a.pageSize {
 		nextPage = new(int)
 		*nextPage = page + 1
 	}
@@ -125,10 +55,9 @@ func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 }
 
 func (a *Application) handleTransactionsAsCsv(c *gin.Context) {
-	filters, err := makeFilters(c)
+	filters, err := buildFilters(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		log.Println(err)
+		a.sendBadRequest(c, err.Error())
 		return
 	}
 
@@ -142,31 +71,22 @@ func (a *Application) handleTransactionsAsCsv(c *gin.Context) {
 
 	_, err = writer.Write([]byte("TransactionId,RequestId,TerminalId,PartnerObjectId,AmountTotal,AmountOriginal,CommissionPS,CommissionClient,CommissionProvider,DateInput,DatePost,Status,PaymentType,PaymentNumber,ServiceId,Service,PayeeId,PayeeName,PayeeBankMfo,PayeeBankAccount,PaymentNarrative\n"))
 	if err != nil {
-		// TODO: check if it is indeed internal error
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})
-		log.Println(err)
+		// return from the handler to trigger closing the connection
 		return
 	}
 
 	err = a.TransactionRepository.ForEach(
 		filters, func(model *models.Transaction) error {
-			// TODO: handle error
 			_, err := writer.Write([]byte(fmt.Sprintf("%s\n", model.ToCsvRow())))
 			if err != nil {
 				return err
 			}
 
 			flusher.Flush()
-
-			// TODO: must be removed later
-			// time.Sleep(time.Duration(1) * time.Second)
 			return nil
 		},
 	)
 	if err != nil {
-		// TODO: check if it is indeed internal error
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})
-		log.Println(err)
 		return
 	}
 
@@ -176,16 +96,13 @@ func (a *Application) handleTransactionsAsCsv(c *gin.Context) {
 func (a *Application) handleUpload(c *gin.Context) {
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		log.Println(err)
+		a.sendBadRequest(c, err.Error())
 		return
 	}
 
-	log.Println(fileHeader.Filename)
 	file, err := fileHeader.Open()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})
-		log.Println(err)
+		a.sendInternalError(c, err.Error())
 		return
 	}
 
@@ -215,16 +132,15 @@ func (a *Application) handleUpload(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err})
-		log.Println(err)
+		a.sendBadRequest(c, err.Error())
 		return
 	}
 
 	if err = scanner.Err(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})
-		log.Println(err)
+		a.sendInternalError(c, err.Error())
 		return
 	}
 
+	log.Printf("File %s was uploaded.\n", fileHeader.Filename)
 	c.JSON(http.StatusOK, gin.H{"row_count": uploadedRowsCount})
 }
