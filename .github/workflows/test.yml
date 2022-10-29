@@ -1,0 +1,41 @@
+name: Test
+on:
+  push:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: "postgres:15"
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Run tests
+        env:
+          CGO_ENABLED=1;
+          POSTGRES_DB_NAME=postgres;
+          POSTGRES_HOST=localhost;
+          POSTGRES_PASSWORD=postgres;
+          POSTGRES_PORT=5432;
+          POSTGRES_USER=postgres;
+          POSTGRES_USER_SCHEMA=rest_api_schema
+        run: |
+          go test -v TraineeGolangTestTask/app && \
+          go test -v TraineeGolangTestTask/cli && \
+          go test -v TraineeGolangTestTask/models && \
+          go test -v TraineeGolangTestTask/repositories
