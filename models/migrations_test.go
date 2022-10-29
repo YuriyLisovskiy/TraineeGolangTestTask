@@ -126,7 +126,7 @@ func Test_migrateAll(t *testing.T) {
 		t.Error("unable to open the database")
 	}
 
-	db.Exec("CREATE SCHEMA rest_api_schema")
+	db.Exec("CREATE SCHEMA rest_api")
 	err = migrateAll(db)
 	if err != nil {
 		t.Error(err)
@@ -136,10 +136,10 @@ func Test_migrateAll(t *testing.T) {
 	ensureEntityExists(t, db, fmt.Sprintf("SELECT count(*) FROM pg_type WHERE typname = '%s'", "payment_type_type"))
 	ensureEntityExists(t, db, fmt.Sprintf("SELECT count(*) FROM pg_tables WHERE tablename = '%s'", "transactions"))
 
-	log.Println(db.Exec("DROP TABLE rest_api_schema.transactions").Error)
-	log.Println(db.Exec("DROP TYPE rest_api_schema.status_type").Error)
-	log.Println(db.Exec("DROP TYPE rest_api_schema.payment_type_type").Error)
-	log.Println(db.Exec("DROP SCHEMA rest_api_schema").Error)
+	log.Println(db.Exec("DROP TABLE rest_api.transactions").Error)
+	log.Println(db.Exec("DROP TYPE rest_api.status_type").Error)
+	log.Println(db.Exec("DROP TYPE rest_api.payment_type_type").Error)
+	log.Println(db.Exec("DROP SCHEMA rest_api").Error)
 }
 
 func ensureEntityExists(t *testing.T, db *gorm.DB, sql string) {

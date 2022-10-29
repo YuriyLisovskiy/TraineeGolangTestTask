@@ -58,8 +58,8 @@ type Transaction struct {
 	CommissionProvider float32         `json:"commission_provider"`
 	DateInput          time.Time       `json:"date_input"` // YYYY-MM-DD HH:MM:SS
 	DatePost           time.Time       `json:"date_post"`  // YYYY-MM-DD HH:MM:SS
-	Status             StatusType      `gorm:"type:rest_api_schema.status_type" json:"status"`
-	PaymentType        PaymentTypeType `gorm:"type:rest_api_schema.payment_type_type" json:"payment_type"`
+	Status             StatusType      `gorm:"type:rest_api.status_type" json:"status"`
+	PaymentType        PaymentTypeType `gorm:"type:rest_api.payment_type_type" json:"payment_type"`
 	PaymentNumber      string          `gorm:"size:10;check:payment_number ~ '[A-Z]{2}[0-9]{8}'" json:"payment_number"`
 	ServiceId          uint64          `json:"service_id"`
 	Service            string          `json:"service"`
