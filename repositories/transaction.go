@@ -218,7 +218,7 @@ func (tf *TransactionFilterBuilderImpl) AddPaymentNarrative(value string) error 
 	if value != "" {
 		tf.filters = append(
 			tf.filters, func(tx *gorm.DB) {
-				tx.Where("payment_narrative LIKE ?", fmt.Sprintf("%%%s%%%", value))
+				tx.Where("payment_narrative LIKE ?", fmt.Sprintf("%%%s%%", value))
 			},
 		)
 	}
