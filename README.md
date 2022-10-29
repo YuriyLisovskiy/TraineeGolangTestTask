@@ -1,4 +1,6 @@
 ## Trainee Golang Test Task
+[![Test](https://github.com/YuriyLisovskiy/TraineeGolangTestTask/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/YuriyLisovskiy/TraineeGolangTestTask/actions/workflows/test.yml)
+
 The environment consists of two Docker containers that run the REST API application
 and the PostgreSQL database with persistent storage located on host machine.
 But you can start these two containers separately.
