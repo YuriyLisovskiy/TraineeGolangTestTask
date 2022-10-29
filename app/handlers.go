@@ -27,13 +27,14 @@ func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 		return
 	}
 
-	filters, err := buildFilters(c)
+	filterBuilder := a.TransactionRepository.NewFilterBuilder()
+	err = parseParameters(c, filterBuilder)
 	if err != nil {
 		a.sendBadRequest(c, err.Error())
 		return
 	}
 
-	transactions := a.TransactionRepository.Filter(filters, page, a.pageSize)
+	transactions := a.TransactionRepository.Filter(filterBuilder.GetFilters(), page, a.pageSize)
 	var (
 		previousPage *int
 		nextPage     *int
@@ -60,7 +61,8 @@ func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 }
 
 func (a *Application) handleTransactionsAsCsv(c *gin.Context) {
-	filters, err := buildFilters(c)
+	filterBuilder := a.TransactionRepository.NewFilterBuilder()
+	err := parseParameters(c, filterBuilder)
 	if err != nil {
 		a.sendBadRequest(c, err.Error())
 		return
@@ -81,7 +83,7 @@ func (a *Application) handleTransactionsAsCsv(c *gin.Context) {
 	}
 
 	err = a.TransactionRepository.ForEach(
-		filters, func(model *models.Transaction) error {
+		filterBuilder.GetFilters(), func(model *models.Transaction) error {
 			_, err := writer.Write([]byte(fmt.Sprintf("%s\n", model.ToCsvRow())))
 			if err != nil {
 				return err

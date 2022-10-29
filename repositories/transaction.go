@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"TraineeGolangTestTask/models"
@@ -13,6 +15,8 @@ type TransactionRepository interface {
 	CreateBatch(dbTransaction func(TransactionRepository) error) error
 	Filter(filters []TransactionFilter, page, pageSize int) []models.Transaction
 	ForEach(filters []TransactionFilter, apply func(model *models.Transaction) error) error
+
+	NewFilterBuilder() TransactionFilterBuilder
 }
 
 type TransactionRepositoryImpl struct {
@@ -83,40 +87,145 @@ func (tr *TransactionRepositoryImpl) ForEach(
 	return nil
 }
 
+func (tr *TransactionRepositoryImpl) NewFilterBuilder() TransactionFilterBuilder {
+	return &TransactionFilterBuilderImpl{}
+}
+
 type TransactionFilter func(tx *gorm.DB)
 
-func FilterByTransactionId(id uint64) TransactionFilter {
-	return func(tx *gorm.DB) {
-		tx.Where("id = ?", id)
-	}
+type TransactionFilterBuilder interface {
+	AddTransactionId(value string) error
+	AddTerminalIds(values []string) error
+	AddStatus(value string) error
+	AddPaymentType(value string) error
+	AddDatePostRange(valueFrom, valueTo string) error
+	AddPaymentNarrative(value string) error
+	GetFilters() []TransactionFilter
 }
 
-func FilterByTerminalId(ids []uint64) TransactionFilter {
-	return func(tx *gorm.DB) {
-		tx.Where("(terminal_id) IN ?", ids)
-	}
+type TransactionFilterBuilderImpl struct {
+	filters []TransactionFilter
 }
 
-func FilterByStatus(status models.StatusType) TransactionFilter {
-	return func(tx *gorm.DB) {
-		tx.Where("status = ?", status)
+func (tf *TransactionFilterBuilderImpl) AddTransactionId(value string) error {
+	if value != "" {
+		transactionId, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		tf.filters = append(
+			tf.filters, func(tx *gorm.DB) {
+				tx.Where("id = ?", transactionId)
+			},
+		)
 	}
+
+	return nil
 }
 
-func FilterByPaymentType(paymentType models.PaymentTypeType) TransactionFilter {
-	return func(tx *gorm.DB) {
-		tx.Where("payment_type = ?", paymentType)
+func (tf *TransactionFilterBuilderImpl) AddTerminalIds(values []string) error {
+	if len(values) > 0 {
+		var ids []uint64
+		for _, stringId := range values {
+			id, err := strconv.ParseUint(stringId, 10, 64)
+			if err != nil {
+				return err
+			}
+
+			ids = append(ids, id)
+		}
+
+		tf.filters = append(
+			tf.filters, func(tx *gorm.DB) {
+				tx.Where("(terminal_id) IN ?", ids)
+			},
+		)
 	}
+
+	return nil
 }
 
-func FilterByDatePostTimeRange(from, to time.Time) TransactionFilter {
-	return func(tx *gorm.DB) {
-		tx.Where("date_post BETWEEN ? AND ?", from, to)
+func (tf *TransactionFilterBuilderImpl) AddStatus(value string) error {
+	if value != "" {
+		switch status := models.StatusType(value); status {
+		case models.ACCEPTED, models.DECLINED:
+			tf.filters = append(
+				tf.filters, func(tx *gorm.DB) {
+					tx.Where("status = ?", status)
+				},
+			)
+		default:
+			return fmt.Errorf(
+				"value of \"status\" parameter should be either \"%v\" or \"%v\"",
+				models.ACCEPTED,
+				models.DECLINED,
+			)
+		}
 	}
+
+	return nil
 }
 
-func ContainsTextInPaymentNarrative(text string) TransactionFilter {
-	return func(tx *gorm.DB) {
-		tx.Where("payment_narrative LIKE ?", fmt.Sprintf("%%%s%%%", text))
+func (tf *TransactionFilterBuilderImpl) AddPaymentType(value string) error {
+	if value != "" {
+		switch paymentType := models.PaymentTypeType(value); paymentType {
+		case models.CASH, models.CARD:
+			tf.filters = append(
+				tf.filters, func(tx *gorm.DB) {
+					tx.Where("payment_type = ?", paymentType)
+				},
+			)
+		default:
+			return fmt.Errorf(
+				"value of \"payment_type\" parameter should be either \"%v\" or \"%v\"",
+				models.CASH,
+				models.CARD,
+			)
+		}
 	}
+
+	return nil
+}
+
+func (tf *TransactionFilterBuilderImpl) AddDatePostRange(valueFrom, valueTo string) error {
+	if valueFrom != "" {
+		if valueTo == "" {
+			return errors.New("parameter \"date_post_to\" is required when using \"date_post_from\"")
+		}
+
+		from, err := time.Parse(models.TimeLayout, valueFrom)
+		if err != nil {
+			return err
+		}
+
+		to, err := time.Parse(models.TimeLayout, valueTo)
+		if err != nil {
+			return err
+		}
+
+		tf.filters = append(
+			tf.filters, func(tx *gorm.DB) {
+				tx.Where("date_post BETWEEN ? AND ?", from, to)
+			},
+		)
+	}
+
+	return nil
+}
+
+func (tf *TransactionFilterBuilderImpl) AddPaymentNarrative(value string) error {
+	if value != "" {
+		tf.filters = append(
+			tf.filters, func(tx *gorm.DB) {
+				tx.Where("payment_narrative LIKE ?", fmt.Sprintf("%%%s%%%", value))
+			},
+		)
+	}
+
+	return nil
+}
+
+func (tf *TransactionFilterBuilderImpl) GetFilters() []TransactionFilter {
+	return tf.filters
 }

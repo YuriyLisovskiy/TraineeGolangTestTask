@@ -13,12 +13,21 @@ func MigrateAll(db *gorm.DB) error {
 }
 
 func migrateAll(tx *gorm.DB) error {
-	err := createEnumIfNotExists(tx, "status_type", []string{string(ACCEPTED), string(DECLINED)})
+	schema := os.Getenv("POSTGRES_USER_SCHEMA")
+	if schema != "" {
+		schema += "."
+	}
+
+	err := createEnumIfNotExists(
+		tx,
+		fmt.Sprintf("%sstatus_type", schema),
+		[]string{string(ACCEPTED), string(DECLINED)},
+	)
 	if err != nil {
 		return err
 	}
 
-	err = createEnumIfNotExists(tx, "payment_type_type", []string{string(CASH), string(CARD)})
+	err = createEnumIfNotExists(tx, fmt.Sprintf("%spayment_type_type", schema), []string{string(CASH), string(CARD)})
 	if err != nil {
 		return err
 	}
@@ -34,12 +43,7 @@ func createEnumIfNotExists(tx *gorm.DB, typeName string, values []string) error 
 
 	if !exists {
 		valuesAsString := fmt.Sprintf("'%s'", strings.Join(values, "', '"))
-		schema := os.Getenv("POSTGRES_USER_SCHEMA")
-		if schema != "" {
-			schema += "."
-		}
-
-		sql := fmt.Sprintf("CREATE TYPE %s%s AS ENUM (%s)", schema, typeName, valuesAsString)
+		sql := fmt.Sprintf("CREATE TYPE %s AS ENUM (%s)", typeName, valuesAsString)
 		return tx.Raw(sql).Row().Err()
 	}
 

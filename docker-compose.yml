@@ -10,7 +10,7 @@ services:
       - postgres_database
     restart: unless-stopped
   postgres_database:
-    image: "postgres:latest"
+    image: "postgres:15"
     ports:
       - "5432:5432"
     restart: unless-stopped
