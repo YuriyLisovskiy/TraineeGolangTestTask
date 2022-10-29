@@ -6,7 +6,7 @@ servers:
 info:
   description: |
     This API allows uploading CSV files with transactions, filtering and
-    retrieving transactions represented with JSON or CSV formats.
+    retrieving transactions from the database into JSON format or CSV file.
   contact:
     name: API Issues
     url: https://github.com/YuriyLisovskiy/TraineeGolangTestTask/issues
@@ -14,7 +14,7 @@ info:
   title: Trainee Golang Test Task API
 tags:
   - name: transactions
-    description: Filtering of the uploaded transactions
+    description: Uploading, filtering and downloading transactions
 paths:
   /api/transactions/json:
     get:
@@ -78,7 +78,7 @@ paths:
       tags:
         - transactions
       summary: Upload CSV file with transactions
-      description: Saves transactions to the database. Size of CSV file should be up to 4 GB.
+      description: Saves transactions to the database. Size of CSV file should not exceed 4 GB.
       operationId: transactionsUpload
       requestBody:
         content:
@@ -107,7 +107,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessageResponse'
         '500':
-          description: Errors generated during reading of file.
+          description: Errors were generated while reading the file.
           content:
             application/json:
               schema:
@@ -121,15 +121,17 @@ components:
     pageParam:
       in: query
       name: page
-      description: TODO
+      description: |
+        This parameter is used for breaking the transactions list into small
+        parts to prevent memory overflows and speed up requests. Page is equal
+        to 1 unless other is specified.
       required: false
       schema:
         $ref: '#/components/schemas/Int64Number'
       example: 7
     transactionIdParam:
       in: query
-      name: id
-      description: TODO
+      name: transaction_id
       required: false
       schema:
         $ref: '#/components/schemas/Int64Number'
@@ -137,7 +139,6 @@ components:
     terminalIdParam:
       in: query
       name: terminal_id
-      description: TODO
       required: false
       schema:
         $ref: '#/components/schemas/Int64Number'
@@ -145,7 +146,6 @@ components:
     statusParam:
       in: query
       name: status
-      description: TODO
       required: false
       schema:
         type: string
@@ -156,7 +156,6 @@ components:
     paymentTypeParam:
       in: query
       name: payment_type
-      description: TODO
       required: false
       schema:
         type: string
@@ -166,8 +165,8 @@ components:
       example: card
     datePostFromParam:
       in: query
-      name: from
-      description: TODO
+      name: date_post_from
+      description: This parameter is used together with "date_post_to".
       required: false
       schema:
         type: string
@@ -175,8 +174,8 @@ components:
       example: 2022-08-12 11:25:27
     datePostToParam:
       in: query
-      name: to
-      description: TODO
+      name: date_post_to
+      description: This parameter is used together with "date_post_from".
       required: false
       schema:
         type: string
@@ -185,7 +184,7 @@ components:
     paymentNarrativeParam:
       in: query
       name: payment_narrative
-      description: TODO
+      description: Checks if the payment narrative of the transaction contains the specified string.
       required: false
       schema:
         type: string
