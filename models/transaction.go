@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,28 +14,60 @@ const (
 	TimeLayout = "2006-01-02 15:04:05"
 )
 
+type StatusType string
+
+const (
+	ACCEPTED StatusType = "accepted"
+	DECLINED StatusType = "declined"
+)
+
+func (st *StatusType) Scan(value interface{}) error {
+	*st = StatusType(value.(string))
+	return nil
+}
+
+func (st *StatusType) Value() (driver.Value, error) {
+	return string(*st), nil
+}
+
+type PaymentTypeType string
+
+const (
+	CASH PaymentTypeType = "cash"
+	CARD PaymentTypeType = "card"
+)
+
+func (pt *PaymentTypeType) Scan(value interface{}) error {
+	*pt = PaymentTypeType(value.(string))
+	return nil
+}
+
+func (pt *PaymentTypeType) Value() (driver.Value, error) {
+	return string(*pt), nil
+}
+
 type Transaction struct {
-	Id                 uint64    `gorm:"primaryKey" json:"transaction_id"`
-	RequestId          uint64    `json:"request_id"`
-	TerminalId         uint64    `json:"terminal_id"`
-	PartnerObjectId    uint16    `json:"partner_object_id"`
-	AmountTotal        float32   `json:"amount_total"`
-	AmountOriginal     float32   `json:"amount_original"`
-	CommissionPS       float32   `json:"commission_ps"`
-	CommissionClient   float32   `json:"commission_client"`
-	CommissionProvider float32   `json:"commission_provider"`
-	DateInput          time.Time `json:"date_input"` // YYYY-MM-DD HH:MM:SS
-	DatePost           time.Time `json:"date_post"`  // YYYY-MM-DD HH:MM:SS
-	Status             string    `gorm:"size:8;check:status IN ('accepted', 'declined')" json:"status"`
-	PaymentType        string    `gorm:"size:4;check:payment_type IN ('cash', 'card')" json:"payment_type"`
-	PaymentNumber      string    `gorm:"size:10;check:payment_number ~ 'PS[0-9]{8}'" json:"payment_number"`
-	ServiceId          uint64    `json:"service_id"`
-	Service            string    `json:"service"`
-	PayeeId            uint64    `json:"payee_id"`
-	PayeeName          string    `json:"payee_name"`
-	PayeeBankMfo       uint32    `json:"payee_bank_mfo"`
-	PayeeBankAccount   string    `gorm:"size:17;check:payee_bank_account ~ 'UA[0-9]{15}'" json:"payee_bank_account"`
-	PaymentNarrative   string    `json:"payment_narrative"`
+	Id                 uint64          `gorm:"primaryKey" json:"transaction_id"`
+	RequestId          uint64          `json:"request_id"`
+	TerminalId         uint64          `json:"terminal_id"`
+	PartnerObjectId    uint16          `json:"partner_object_id"`
+	AmountTotal        float32         `json:"amount_total"`
+	AmountOriginal     float32         `json:"amount_original"`
+	CommissionPS       float32         `json:"commission_ps"`
+	CommissionClient   float32         `json:"commission_client"`
+	CommissionProvider float32         `json:"commission_provider"`
+	DateInput          time.Time       `json:"date_input"` // YYYY-MM-DD HH:MM:SS
+	DatePost           time.Time       `json:"date_post"`  // YYYY-MM-DD HH:MM:SS
+	Status             StatusType      `gorm:"type:rest_api_schema.status_type" json:"status"`
+	PaymentType        PaymentTypeType `gorm:"type:rest_api_schema.payment_type_type" json:"payment_type"`
+	PaymentNumber      string          `gorm:"size:10;check:payment_number ~ '[A-Z]{2}[0-9]{8}'" json:"payment_number"`
+	ServiceId          uint64          `json:"service_id"`
+	Service            string          `json:"service"`
+	PayeeId            uint64          `json:"payee_id"`
+	PayeeName          string          `json:"payee_name"`
+	PayeeBankMfo       uint32          `json:"payee_bank_mfo"`
+	PayeeBankAccount   string          `gorm:"size:17;check:payee_bank_account ~ '[A-Z]{2}[0-9]{15}'" json:"payee_bank_account"`
+	PaymentNarrative   string          `json:"payment_narrative"`
 }
 
 func (t *Transaction) ToCsvRow() string {
@@ -133,8 +166,20 @@ func NewTransactionFromCSVRow(row string) (*Transaction, error) {
 		return nil, err
 	}
 
-	transaction.Status = fields[11]
-	transaction.PaymentType = fields[12]
+	switch status := StatusType(fields[11]); status {
+	case ACCEPTED, DECLINED:
+		transaction.Status = status
+	default:
+		return nil, fmt.Errorf("invalid status, expected %s or %s, received %v", ACCEPTED, DECLINED, status)
+	}
+
+	switch paymentType := PaymentTypeType(fields[12]); paymentType {
+	case CASH, CARD:
+		transaction.PaymentType = paymentType
+	default:
+		return nil, fmt.Errorf("invalid payment type, expected %s or %s, received %v", CASH, CARD, paymentType)
+	}
+
 	transaction.PaymentNumber = fields[13]
 	transaction.ServiceId, err = parseUint64(fields[14])
 	if err != nil {

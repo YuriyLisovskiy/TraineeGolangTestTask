@@ -97,13 +97,13 @@ func FilterByTerminalId(ids []uint64) TransactionFilter {
 	}
 }
 
-func FilterByStatus(status string) TransactionFilter {
+func FilterByStatus(status models.StatusType) TransactionFilter {
 	return func(tx *gorm.DB) {
 		tx.Where("status = ?", status)
 	}
 }
 
-func FilterByPaymentType(paymentType string) TransactionFilter {
+func FilterByPaymentType(paymentType models.PaymentTypeType) TransactionFilter {
 	return func(tx *gorm.DB) {
 		tx.Where("payment_type = ?", paymentType)
 	}

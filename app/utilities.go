@@ -78,21 +78,29 @@ func buildFilters(c *gin.Context) ([]repositories.TransactionFilter, error) {
 		filters = append(filters, repositories.FilterByTerminalId(ids))
 	}
 
-	if status := c.DefaultQuery("status", ""); status != "" {
-		switch status {
-		case "accepted", "declined":
+	if statusParam := c.DefaultQuery("status", ""); statusParam != "" {
+		switch status := models.StatusType(statusParam); status {
+		case models.ACCEPTED, models.DECLINED:
 			filters = append(filters, repositories.FilterByStatus(status))
 		default:
-			return nil, errors.New("value of \"status\" parameter should be either \"accepted\" or \"declined\"")
+			return nil, fmt.Errorf(
+				"value of \"status\" parameter should be either \"%v\" or \"%v\"",
+				models.ACCEPTED,
+				models.DECLINED,
+			)
 		}
 	}
 
-	if paymentType := c.DefaultQuery("payment_type", ""); paymentType != "" {
-		switch paymentType {
-		case "cash", "card":
+	if paymentTypeParam := c.DefaultQuery("payment_type", ""); paymentTypeParam != "" {
+		switch paymentType := models.PaymentTypeType(paymentTypeParam); paymentType {
+		case models.CASH, models.CARD:
 			filters = append(filters, repositories.FilterByPaymentType(paymentType))
 		default:
-			return nil, errors.New("value of \"payment_type\" parameter should be either \"cash\" or \"card\"")
+			return nil, fmt.Errorf(
+				"value of \"payment_type\" parameter should be either \"%v\" or \"%v\"",
+				models.CASH,
+				models.CARD,
+			)
 		}
 	}
 
