@@ -44,10 +44,7 @@ func (tr *TransactionRepositoryImpl) CreateBatch(dbTransaction func(TransactionR
 // If page or pageSize is less than or equals to zero, pagination is ignored.
 func (tr *TransactionRepositoryImpl) Filter(filters []TransactionFilter, page, pageSize int) []models.Transaction {
 	tx := tr.db.Model(&models.Transaction{})
-	for _, filter := range filters {
-		filter(tx)
-	}
-
+	applyFilters(tx, filters)
 	var transactions []models.Transaction
 	if page > 0 && pageSize > 0 {
 		tx.Limit(pageSize).Offset((page - 1) * pageSize)
@@ -62,10 +59,7 @@ func (tr *TransactionRepositoryImpl) ForEach(
 	apply func(model *models.Transaction) error,
 ) error {
 	tx := tr.db.Model(&models.Transaction{})
-	for _, filter := range filters {
-		filter(tx)
-	}
-
+	applyFilters(tx, filters)
 	rows, err := tx.Rows()
 	if err != nil {
 		return err
@@ -85,6 +79,12 @@ func (tr *TransactionRepositoryImpl) ForEach(
 	}
 
 	return nil
+}
+
+func applyFilters(tx *gorm.DB, filters []TransactionFilter) {
+	for _, filter := range filters {
+		filter(tx)
+	}
 }
 
 func (tr *TransactionRepositoryImpl) NewFilterBuilder() TransactionFilterBuilder {

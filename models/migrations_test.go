@@ -90,7 +90,7 @@ func SubTest_createEnumIfNotExists_Create(t *testing.T, db *gorm.DB, typeToCreat
 		t.Errorf("type %s already exists", typeToCreate)
 	}
 
-	err := createEnumIfNotExists(db, typeToCreate, []string{"1", "2", "3"})
+	err := createEnumIfNotExists(db, "", typeToCreate, []string{"1", "2", "3"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,14 +107,14 @@ func SubTest_createEnumIfNotExists_AlreadyExists(t *testing.T, db *gorm.DB, type
 		t.Error(err)
 	}
 
-	err = createEnumIfNotExists(db, typeToCreate, []string{"1", "2", "3"})
+	err = createEnumIfNotExists(db, "", typeToCreate, []string{"1", "2", "3"})
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func SubTest_createEnumIfNotExists_InvalidTypeName(t *testing.T, db *gorm.DB) {
-	err := createEnumIfNotExists(db, "1", []string{"1", "2", "3"})
+	err := createEnumIfNotExists(db, "", "1", []string{"1", "2", "3"})
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -132,14 +132,16 @@ func Test_migrateAll(t *testing.T) {
 		t.Error(err)
 	}
 
+	defer func() {
+		log.Println(db.Exec("DROP TABLE rest_api.transactions").Error)
+		log.Println(db.Exec("DROP TYPE rest_api.status_type").Error)
+		log.Println(db.Exec("DROP TYPE rest_api.payment_type_type").Error)
+		log.Println(db.Exec("DROP SCHEMA rest_api").Error)
+	}()
+
 	ensureEntityExists(t, db, fmt.Sprintf("SELECT count(*) FROM pg_type WHERE typname = '%s'", "status_type"))
 	ensureEntityExists(t, db, fmt.Sprintf("SELECT count(*) FROM pg_type WHERE typname = '%s'", "payment_type_type"))
 	ensureEntityExists(t, db, fmt.Sprintf("SELECT count(*) FROM pg_tables WHERE tablename = '%s'", "transactions"))
-
-	log.Println(db.Exec("DROP TABLE rest_api.transactions").Error)
-	log.Println(db.Exec("DROP TYPE rest_api.status_type").Error)
-	log.Println(db.Exec("DROP TYPE rest_api.payment_type_type").Error)
-	log.Println(db.Exec("DROP SCHEMA rest_api").Error)
 }
 
 func ensureEntityExists(t *testing.T, db *gorm.DB, sql string) {

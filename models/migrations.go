@@ -18,16 +18,12 @@ func migrateAll(tx *gorm.DB) error {
 		schema += "."
 	}
 
-	err := createEnumIfNotExists(
-		tx,
-		fmt.Sprintf("%sstatus_type", schema),
-		[]string{string(ACCEPTED), string(DECLINED)},
-	)
+	err := createEnumIfNotExists(tx, schema, "status_type", []string{string(ACCEPTED), string(DECLINED)})
 	if err != nil {
 		return err
 	}
 
-	err = createEnumIfNotExists(tx, fmt.Sprintf("%spayment_type_type", schema), []string{string(CASH), string(CARD)})
+	err = createEnumIfNotExists(tx, schema, "payment_type_type", []string{string(CASH), string(CARD)})
 	if err != nil {
 		return err
 	}
@@ -35,7 +31,7 @@ func migrateAll(tx *gorm.DB) error {
 	return tx.AutoMigrate(&Transaction{})
 }
 
-func createEnumIfNotExists(tx *gorm.DB, typeName string, values []string) error {
+func createEnumIfNotExists(tx *gorm.DB, schema, typeName string, values []string) error {
 	exists, err := hasEnumType(tx, typeName)
 	if err != nil {
 		return err
@@ -43,7 +39,7 @@ func createEnumIfNotExists(tx *gorm.DB, typeName string, values []string) error 
 
 	if !exists {
 		valuesAsString := fmt.Sprintf("'%s'", strings.Join(values, "', '"))
-		sql := fmt.Sprintf("CREATE TYPE %s AS ENUM (%s)", typeName, valuesAsString)
+		sql := fmt.Sprintf("CREATE TYPE %s%s AS ENUM (%s)", schema, typeName, valuesAsString)
 		return tx.Raw(sql).Row().Err()
 	}
 

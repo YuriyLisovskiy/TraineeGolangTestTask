@@ -35,7 +35,4 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_USER_SCHEMA: rest_api
         run: |
-          go test -v TraineeGolangTestTask/app && \
-          go test -v TraineeGolangTestTask/cli && \
-          go test -v TraineeGolangTestTask/models && \
-          go test -v TraineeGolangTestTask/repositories
+          go test -v TraineeGolangTestTask/...
