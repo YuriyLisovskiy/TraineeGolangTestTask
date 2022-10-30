@@ -13,18 +13,18 @@ The app serves three endpoints, as described [here](#documentation). Upload of l
 The default constant values that are used for application configuration can be changed
 with help of the following environment variables:
 
-| Variable                   | Type             | Description                                                     |
-|----------------------------|------------------|-----------------------------------------------------------------|
-| `PORT`                     | positive integer | Port number to listen on by a web server                        |
-| `APP_PAGE_SIZE`            | positive integer | The count of database records per one response                  |
-| `GIN_DEBUG`                | boolean          | Run the application in debug (`true`) or release (`false`) mode |
-| `GIN_MAX_MULTIPART_MEMORY` | positive integer | The upper limit of memory allocated for multipart requests      |
-| `POSTGRES_HOST`            | string           | Host name of the database server                                |
-| `POSTGRES_PORT`            | positive integer | The port of the database server                                 |
-| `POSTGRES_USER`            | string           | REST API user for accessing the database                        |
-| `POSTGRES_USER_SCHEMA`     | string           | A separate schema created for `POSTGRES_USER`                   |
-| `POSTGRES_PASSWORD`        | string           | Super secure password                                           |
-| `POSTGRES_DB_NAME`         | string           | The database to connect to                                      |
+| Variable                   | Type             | Description                                                |
+|----------------------------|------------------|------------------------------------------------------------|
+| `PORT`                     | positive integer | Port number to listen on by a web server                   |
+| `APP_PAGE_SIZE`            | positive integer | The count of database records per one response             |
+| `GIN_MODE`                 | string           | Possible values: `release`, `debug`, `test`                |
+| `GIN_MAX_MULTIPART_MEMORY` | positive integer | The upper limit of memory allocated for multipart requests |
+| `POSTGRES_HOST`            | string           | Host name of the database server                           |
+| `POSTGRES_PORT`            | positive integer | The port of the database server                            |
+| `POSTGRES_USER`            | string           | REST API user for accessing the database                   |
+| `POSTGRES_USER_SCHEMA`     | string           | A separate schema created for `POSTGRES_USER`              |
+| `POSTGRES_PASSWORD`        | string           | Super secure password                                      |
+| `POSTGRES_DB_NAME`         | string           | The database to connect to                                 |
 
 Default values of the above environment variables can be found in [`.env`](.env) file.
 
