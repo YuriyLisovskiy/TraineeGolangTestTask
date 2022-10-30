@@ -34,7 +34,7 @@ func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 		return
 	}
 
-	transactions := a.TransactionRepository.Filter(filterBuilder.GetFilters(), page, a.pageSize)
+	transactions := a.TransactionRepository.Filter(filterBuilder.GetFilters(), page, a.PageSize)
 	var (
 		previousPage *int
 		nextPage     *int
@@ -45,7 +45,7 @@ func (a *Application) handleTransactionsAsJson(c *gin.Context) {
 	}
 
 	transactionsLen := len(transactions)
-	if transactionsLen == a.pageSize {
+	if transactionsLen == a.PageSize {
 		nextPage = new(int)
 		*nextPage = page + 1
 	}
@@ -121,6 +121,12 @@ func (a *Application) handleTransactionsUpload(c *gin.Context) {
 	err = a.TransactionRepository.CreateBatch(
 		func(repository repositories.TransactionRepository) error {
 			for scanner.Scan() {
+				text := scanner.Text()
+				if text == "" {
+					// TODO: return bad request on empty lines maybe
+					continue
+				}
+
 				transaction, err := models.NewTransactionFromCSVRow(scanner.Text())
 				if err != nil {
 					return errors.New(fmt.Sprintf("invalid file data: %v", err))

@@ -16,41 +16,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	EnvAppPageSize           = "APP_PAGE_SIZE"
+	EnvGinMaxMultipartMemory = "GIN_MAX_MULTIPART_MEMORY"
+	EnvGinShutdownTimeout    = "GIN_SHUTDOWN_TIMEOUT"
+
+	DefaultAppPageSize           = 30
+	DefaultGinMaxMultipartMemory = 8 << 22 // 32 mb
+	DefaultGinShutdownTimeout    = 5
+)
+
 type Application struct {
-	pageSize              int
+	PageSize              int
 	TransactionRepository repositories.TransactionRepository
-}
-
-func (a *Application) Configure() error {
-	mode := gin.ReleaseMode
-	debug, err := strconv.ParseBool(os.Getenv("GIN_DEBUG"))
-	if err != nil {
-		return err
-	}
-
-	pageSizeString := os.Getenv("APP_PAGE_SIZE")
-	if pageSizeString != "" {
-		a.pageSize, err = strconv.Atoi(pageSizeString)
-		if err != nil {
-			return err
-		}
-	} else {
-		a.pageSize = 30
-	}
-
-	if debug {
-		mode = gin.DebugMode
-	}
-
-	gin.SetMode(mode)
-	return nil
 }
 
 func (a *Application) Execute(addr string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	router := a.buildRouter()
+	router := a.configureRouter(gin.Default())
 	server := &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -68,9 +53,9 @@ func (a *Application) Execute(addr string) error {
 	stop()
 	log.Println("shutting down gracefully, press Ctrl+C again to force")
 
-	shutdownTimeoutSec, err := strconv.Atoi(os.Getenv("GIN_SHUTDOWN_TIMEOUT"))
+	shutdownTimeoutSec, err := strconv.Atoi(os.Getenv(EnvGinShutdownTimeout))
 	if err != nil {
-		shutdownTimeoutSec = 5
+		shutdownTimeoutSec = DefaultGinShutdownTimeout
 		// ignore error
 	}
 
@@ -85,11 +70,17 @@ func (a *Application) Execute(addr string) error {
 	return nil
 }
 
-func (a *Application) buildRouter() *gin.Engine {
-	router := gin.Default()
-	configureMaxMultipartMemory(router)
+func (a *Application) configureRouter(router *gin.Engine) *gin.Engine {
+	setMaxMultipartMemoryOrDefault(router, DefaultGinMaxMultipartMemory)
 	a.addRoutes(router)
 	return router
+}
+
+func (a *Application) addRoutes(r *gin.Engine) {
+	apiTransactions := r.Group("/api/transactions")
+	apiTransactions.GET("/csv", a.handleTransactionsAsCsv)
+	apiTransactions.GET("/json", a.handleTransactionsAsJson)
+	apiTransactions.POST("/upload", a.handleTransactionsUpload)
 }
 
 func (a *Application) sendInternalError(c *gin.Context, message string) {
@@ -100,14 +91,14 @@ func (a *Application) sendInternalError(c *gin.Context, message string) {
 }
 
 func (a *Application) sendBadRequest(c *gin.Context, message string) {
-	c.JSON(http.StatusInternalServerError, gin.H{"message": message})
+	c.JSON(http.StatusBadRequest, gin.H{"message": message})
 	if message != "" {
 		log.Println(message)
 	}
 }
 
-func configureMaxMultipartMemory(router *gin.Engine) {
-	maxMultipartMemoryString := os.Getenv("GIN_MAX_MULTIPART_MEMORY")
+func setMaxMultipartMemoryOrDefault(router *gin.Engine, defaultValue int64) {
+	maxMultipartMemoryString := os.Getenv(EnvGinMaxMultipartMemory)
 	if maxMultipartMemoryString != "" {
 		maxMultipartMemory, err := strconv.ParseInt(maxMultipartMemoryString, 10, 64)
 		if err == nil {
@@ -115,8 +106,12 @@ func configureMaxMultipartMemory(router *gin.Engine) {
 			return
 		}
 
-		log.Printf("unable to parse %s to a 64-bit integer; using 32 mb by default\n", maxMultipartMemoryString)
+		log.Printf(
+			"unable to parse %s to a 64-bit integer; using %d by default\n",
+			maxMultipartMemoryString,
+			defaultValue,
+		)
 	}
 
-	router.MaxMultipartMemory = 8 << 22 // 32 mb by default
+	router.MaxMultipartMemory = defaultValue
 }
