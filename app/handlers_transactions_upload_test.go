@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"TraineeGolangTestTask/models"
@@ -168,8 +169,8 @@ var testTransactions []models.Transaction
 
 func init() {
 	for _, row := range testData[1:] {
-		transaction, _ := models.NewTransactionFromCSVRow(row)
-		testTransactions = append(testTransactions, *transaction)
+		transaction, _ := models.NewTransactionFromCSVRow(strings.Split(row, ","))
+		testTransactions = append(testTransactions, transaction)
 	}
 }
 
@@ -181,12 +182,12 @@ func newTransactionRepositoryMock(data []models.Transaction) *transactionReposit
 	return &transactionRepositoryMock{models: data}
 }
 
-func (m *transactionRepositoryMock) Create(model *models.Transaction) error {
-	m.models = append(m.models, *model)
+func (m *transactionRepositoryMock) Create(model models.Transaction) error {
+	m.models = append(m.models, model)
 	return nil
 }
 
-func (m *transactionRepositoryMock) CreateBatch(models []*models.Transaction) error {
+func (m *transactionRepositoryMock) CreateBatch(models []models.Transaction) error {
 	for _, model := range models {
 		_ = m.Create(model)
 	}
@@ -207,10 +208,10 @@ func (m *transactionRepositoryMock) Filter(
 
 func (m *transactionRepositoryMock) ForEach(
 	filters []repositories.TransactionFilter,
-	apply func(model *models.Transaction) error,
+	apply func(model models.Transaction) error,
 ) error {
 	for _, model := range m.models {
-		err := apply(&model)
+		err := apply(model)
 		if err != nil {
 			return err
 		}

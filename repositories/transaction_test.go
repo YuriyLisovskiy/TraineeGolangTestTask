@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"TraineeGolangTestTask/models"
@@ -481,7 +482,7 @@ var testTransactions []models.Transaction
 
 func init() {
 	for _, row := range testData[1:] {
-		transaction, _ := models.NewTransactionFromCSVRow(row)
-		testTransactions = append(testTransactions, *transaction)
+		transaction, _ := models.NewTransactionFromCSVRow(strings.Split(row, ","))
+		testTransactions = append(testTransactions, transaction)
 	}
 }

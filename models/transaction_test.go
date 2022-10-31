@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 	"time"
 )
@@ -40,7 +41,7 @@ func TestTransaction_ToCsvRow(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_Success(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів згідно договору про надання послуг А11/27122 від 19.11.2020 р."
-	transaction, err := NewTransactionFromCSVRow(csvData)
+	transaction, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err != nil {
 		t.Error(err)
 	}
@@ -153,7 +154,7 @@ func TestNewTransactionFromCSVRow_Success(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_MissingFieldInCSVRow(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -161,7 +162,7 @@ func TestNewTransactionFromCSVRow_MissingFieldInCSVRow(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidId(t *testing.T) {
 	csvData := "-1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -169,7 +170,7 @@ func TestNewTransactionFromCSVRow_InvalidId(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidRequestId(t *testing.T) {
 	csvData := "1,-1,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -177,7 +178,7 @@ func TestNewTransactionFromCSVRow_InvalidRequestId(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidTerminalId(t *testing.T) {
 	csvData := "1,20020,-1,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -185,7 +186,7 @@ func TestNewTransactionFromCSVRow_InvalidTerminalId(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidPartnerObjectId(t *testing.T) {
 	csvData := "1,20020,3506,65536,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -196,7 +197,7 @@ func TestNewTransactionFromCSVRow_InvalidAmountTotal(t *testing.T) {
 		"1,20020,3506,1111,%f,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів",
 		math.MaxFloat32+math.MaxFloat32*0.0001,
 	)
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -207,7 +208,7 @@ func TestNewTransactionFromCSVRow_InvalidAmountOriginal(t *testing.T) {
 		"1,20020,3506,1111,1.00,%f,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів",
 		math.MaxFloat32+math.MaxFloat32*0.0001,
 	)
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -218,7 +219,7 @@ func TestNewTransactionFromCSVRow_InvalidCommissionPS(t *testing.T) {
 		"1,20020,3506,1111,1.00,1.00,%f,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів",
 		math.MaxFloat32+math.MaxFloat32*0.0001,
 	)
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -229,7 +230,7 @@ func TestNewTransactionFromCSVRow_InvalidCommissionClient(t *testing.T) {
 		"1,20020,3506,1111,1.00,1.00,0.00,%f,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів",
 		math.MaxFloat32+math.MaxFloat32*0.0001,
 	)
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -240,7 +241,7 @@ func TestNewTransactionFromCSVRow_InvalidCommissionProvider(t *testing.T) {
 		"1,20020,3506,1111,1.00,1.00,0.00,0.00,%f,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів",
 		math.MaxFloat32+math.MaxFloat32*0.0001,
 	)
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -248,7 +249,7 @@ func TestNewTransactionFromCSVRow_InvalidCommissionProvider(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidDateInput(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -256,7 +257,7 @@ func TestNewTransactionFromCSVRow_InvalidDateInput(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidDatePost(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-25-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -264,7 +265,7 @@ func TestNewTransactionFromCSVRow_InvalidDatePost(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidStatus(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,rejected,cash,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -272,7 +273,7 @@ func TestNewTransactionFromCSVRow_InvalidStatus(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidPaymentType(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,credit,PS16698205,13980,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -280,7 +281,7 @@ func TestNewTransactionFromCSVRow_InvalidPaymentType(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidServiceId(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,-1,Поповнення карток,14232155,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -288,7 +289,7 @@ func TestNewTransactionFromCSVRow_InvalidServiceId(t *testing.T) {
 
 func TestNewTransactionFromCSVRow_InvalidPayeeId(t *testing.T) {
 	csvData := "1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,-1,pumb,254751,UA713451373919523,Перерахування коштів"
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
@@ -299,7 +300,7 @@ func TestNewTransactionFromCSVRow_InvalidPayeeBankMfo(t *testing.T) {
 		"1,20020,3506,1111,1.00,1.00,0.00,0.00,0.00,2022-08-12 11:25:27,2022-08-12 14:25:27,accepted,cash,PS16698205,13980,Поповнення карток,14232155,pumb,%f,UA713451373919523,Перерахування коштів",
 		math.MaxFloat32+math.MaxFloat32*0.0001,
 	)
-	_, err := NewTransactionFromCSVRow(csvData)
+	_, err := NewTransactionFromCSVRow(strings.Split(csvData, ","))
 	if err == nil {
 		t.Error("error is nil")
 	}
