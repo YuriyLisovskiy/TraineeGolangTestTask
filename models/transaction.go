@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -97,11 +96,10 @@ func (t *Transaction) ToCsvRow() string {
 	)
 }
 
-func NewTransactionFromCSVRow(row string) (*Transaction, error) {
-	fields := strings.SplitN(row, ",", numberOfTransactionFields)
+func NewTransactionFromCSVRow(fields []string) (Transaction, error) {
 	fieldsLen := len(fields)
 	if fieldsLen != numberOfTransactionFields {
-		return nil, fmt.Errorf(
+		return Transaction{}, fmt.Errorf(
 			"invalid number of transaction fields: %d required, %d got",
 			numberOfTransactionFields,
 			fieldsLen,
@@ -109,93 +107,98 @@ func NewTransactionFromCSVRow(row string) (*Transaction, error) {
 	}
 
 	var err error
-	transaction := &Transaction{}
+	transaction := Transaction{}
 	transaction.Id, err = parseUint64(fields[0])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.RequestId, err = parseUint64(fields[1])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.TerminalId, err = parseUint64(fields[2])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	partnerObjectId, err := strconv.ParseUint(fields[3], 10, 16)
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.PartnerObjectId = uint16(partnerObjectId)
 	transaction.AmountTotal, err = parseFloat32(fields[4])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.AmountOriginal, err = parseFloat32(fields[5])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.CommissionPS, err = parseFloat32(fields[6])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.CommissionClient, err = parseFloat32(fields[7])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.CommissionProvider, err = parseFloat32(fields[8])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.DateInput, err = time.Parse(TimeLayout, fields[9])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.DatePost, err = time.Parse(TimeLayout, fields[10])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	switch status := StatusType(fields[11]); status {
 	case ACCEPTED, DECLINED:
 		transaction.Status = status
 	default:
-		return nil, fmt.Errorf("invalid status, expected %s or %s, received %v", ACCEPTED, DECLINED, status)
+		return Transaction{}, fmt.Errorf("invalid status, expected %s or %s, received %v", ACCEPTED, DECLINED, status)
 	}
 
 	switch paymentType := PaymentTypeType(fields[12]); paymentType {
 	case CASH, CARD:
 		transaction.PaymentType = paymentType
 	default:
-		return nil, fmt.Errorf("invalid payment type, expected %s or %s, received %v", CASH, CARD, paymentType)
+		return Transaction{}, fmt.Errorf(
+			"invalid payment type, expected %s or %s, received %v",
+			CASH,
+			CARD,
+			paymentType,
+		)
 	}
 
 	transaction.PaymentNumber = fields[13]
 	transaction.ServiceId, err = parseUint64(fields[14])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.Service = fields[15]
 	transaction.PayeeId, err = parseUint64(fields[16])
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.PayeeName = fields[17]
 	payeeBandMfo, err := strconv.ParseInt(fields[18], 10, 32)
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 
 	transaction.PayeeBankMfo = uint32(payeeBandMfo)

@@ -11,10 +11,11 @@ import (
 )
 
 type TransactionRepository interface {
-	Create(model *models.Transaction) error
-	CreateBatch(dbTransaction func(TransactionRepository) error) error
+	Create(model models.Transaction) error
+	CreateBatch(models []models.Transaction) error
+	UseTransaction(dbTransaction func(TransactionRepository) error) error
 	Filter(filters []TransactionFilter, page, pageSize int) []models.Transaction
-	ForEach(filters []TransactionFilter, apply func(model *models.Transaction) error) error
+	ForEach(filters []TransactionFilter, apply func(model models.Transaction) error) error
 
 	NewFilterBuilder() TransactionFilterBuilder
 }
@@ -27,12 +28,17 @@ func NewTransactionRepository(db *gorm.DB) *TransactionRepositoryImpl {
 	return &TransactionRepositoryImpl{db: db}
 }
 
-func (tr *TransactionRepositoryImpl) Create(model *models.Transaction) error {
-	tx := tr.db.Create(model)
+func (tr *TransactionRepositoryImpl) Create(model models.Transaction) error {
+	tx := tr.db.Create(&model)
 	return tx.Error
 }
 
-func (tr *TransactionRepositoryImpl) CreateBatch(dbTransaction func(TransactionRepository) error) error {
+func (tr *TransactionRepositoryImpl) CreateBatch(models []models.Transaction) error {
+	tx := tr.db.Create(&models)
+	return tx.Error
+}
+
+func (tr *TransactionRepositoryImpl) UseTransaction(dbTransaction func(TransactionRepository) error) error {
 	return tr.db.Transaction(
 		func(tx *gorm.DB) error {
 			return dbTransaction(tr)
@@ -43,9 +49,9 @@ func (tr *TransactionRepositoryImpl) CreateBatch(dbTransaction func(TransactionR
 // Filter returns paginated result that is a list of transactions with applied filters.
 // If page or pageSize is less than or equals to zero, pagination is ignored.
 func (tr *TransactionRepositoryImpl) Filter(filters []TransactionFilter, page, pageSize int) []models.Transaction {
-	tx := tr.db.Model(&models.Transaction{})
-	applyFilters(tx, filters)
 	var transactions []models.Transaction
+	tx := tr.db.Model(&transactions)
+	applyFilters(tx, filters)
 	if page > 0 && pageSize > 0 {
 		tx.Limit(pageSize).Offset((page - 1) * pageSize)
 	}
@@ -56,7 +62,7 @@ func (tr *TransactionRepositoryImpl) Filter(filters []TransactionFilter, page, p
 
 func (tr *TransactionRepositoryImpl) ForEach(
 	filters []TransactionFilter,
-	apply func(model *models.Transaction) error,
+	apply func(model models.Transaction) error,
 ) error {
 	tx := tr.db.Model(&models.Transaction{})
 	applyFilters(tx, filters)
@@ -72,7 +78,7 @@ func (tr *TransactionRepositoryImpl) ForEach(
 			return err
 		}
 
-		err = apply(&transaction)
+		err = apply(transaction)
 		if err != nil {
 			return err
 		}

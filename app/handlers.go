@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"strconv"
+	"strings"
 
 	"TraineeGolangTestTask/models"
 	"TraineeGolangTestTask/repositories"
@@ -83,7 +85,7 @@ func (a *Application) handleTransactionsAsCsv(c *gin.Context) {
 	}
 
 	err = a.TransactionRepository.ForEach(
-		filterBuilder.GetFilters(), func(model *models.Transaction) error {
+		filterBuilder.GetFilters(), func(model models.Transaction) error {
 			_, err := writer.Write([]byte(fmt.Sprintf("%s\n", model.ToCsvRow())))
 			if err != nil {
 				return err
@@ -116,28 +118,60 @@ func (a *Application) handleTransactionsUpload(c *gin.Context) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	// scanner := csv.NewReader(file)
 	uploadedRowsCount := 0
+
+	// skips header of CSV file
+	// _, err = scanner.Read()
+	// if err != nil {
+	// 	a.sendInternalError(c, err.Error())
+	// 	return
+	// }
+
 	scanner.Scan() // skips header of CSV file
-	err = a.TransactionRepository.CreateBatch(
+	err = a.TransactionRepository.UseTransaction(
 		func(repository repositories.TransactionRepository) error {
-			for scanner.Scan() {
-				text := scanner.Text()
-				if text == "" {
-					// TODO: return bad request on empty lines maybe
-					continue
+			rowsPerDbRequest := 1500
+			i := rowsPerDbRequest
+			for i == rowsPerDbRequest {
+				i = 0
+				var transactions []models.Transaction
+				for scanner.Scan() && i < rowsPerDbRequest {
+					// record, err := scanner.Read()
+					// if err == io.EOF {
+					// 	break
+					// }
+					//
+					// if err != nil {
+					// 	return err
+					// }
+
+					text := scanner.Text()
+					if text == "" {
+						continue
+					}
+
+					// text := strings.Join(record, ",")
+					transaction, err := models.NewTransactionFromCSVRow(strings.Split(text, ","))
+					if err != nil {
+						return errors.New(fmt.Sprintf("invalid file data: %v", err))
+					}
+
+					transactions = append(transactions, transaction)
+					i++
 				}
 
-				transaction, err := models.NewTransactionFromCSVRow(scanner.Text())
-				if err != nil {
-					return errors.New(fmt.Sprintf("invalid file data: %v", err))
+				transactionCount := len(transactions)
+				if transactionCount > 0 {
+					err = repository.CreateBatch(transactions)
+					if err != nil {
+						return err
+					}
+
+					uploadedRowsCount += transactionCount
 				}
 
-				err = repository.Create(transaction)
-				if err != nil {
-					return err
-				}
-
-				uploadedRowsCount++
+				transactions = []models.Transaction{}
 			}
 
 			return nil
@@ -149,10 +183,10 @@ func (a *Application) handleTransactionsUpload(c *gin.Context) {
 		return
 	}
 
-	if err = scanner.Err(); err != nil {
-		a.sendInternalError(c, err.Error())
-		return
-	}
+	// if err = scanner.Err(); err != nil {
+	// 	a.sendInternalError(c, err.Error())
+	// 	return
+	// }
 
 	log.Printf("File %s was uploaded.\n", fileHeader.Filename)
 	c.JSON(http.StatusCreated, gin.H{"row_count": uploadedRowsCount})

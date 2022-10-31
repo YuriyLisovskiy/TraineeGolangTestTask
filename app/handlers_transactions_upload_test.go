@@ -186,7 +186,15 @@ func (m *transactionRepositoryMock) Create(model *models.Transaction) error {
 	return nil
 }
 
-func (m *transactionRepositoryMock) CreateBatch(dbTransaction func(repositories.TransactionRepository) error) error {
+func (m *transactionRepositoryMock) CreateBatch(models []*models.Transaction) error {
+	for _, model := range models {
+		_ = m.Create(model)
+	}
+
+	return nil
+}
+
+func (m *transactionRepositoryMock) UseTransaction(dbTransaction func(repositories.TransactionRepository) error) error {
 	return dbTransaction(m)
 }
 
