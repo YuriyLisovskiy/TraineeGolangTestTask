@@ -118,40 +118,23 @@ func (a *Application) handleTransactionsUpload(c *gin.Context) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	// scanner := csv.NewReader(file)
+
+	// skip header of CSV file
+	scanner.Scan()
+
 	uploadedRowsCount := 0
-
-	// skips header of CSV file
-	// _, err = scanner.Read()
-	// if err != nil {
-	// 	a.sendInternalError(c, err.Error())
-	// 	return
-	// }
-
-	scanner.Scan() // skips header of CSV file
 	err = a.TransactionRepository.UseTransaction(
 		func(repository repositories.TransactionRepository) error {
-			rowsPerDbRequest := 1500
-			i := rowsPerDbRequest
-			for i == rowsPerDbRequest {
+			i := MaxRowsPerDbCreateRequest
+			for i == MaxRowsPerDbCreateRequest {
 				i = 0
 				var transactions []models.Transaction
-				for scanner.Scan() && i < rowsPerDbRequest {
-					// record, err := scanner.Read()
-					// if err == io.EOF {
-					// 	break
-					// }
-					//
-					// if err != nil {
-					// 	return err
-					// }
-
+				for scanner.Scan() && i < MaxRowsPerDbCreateRequest {
 					text := scanner.Text()
 					if text == "" {
 						continue
 					}
 
-					// text := strings.Join(record, ",")
 					transaction, err := models.NewTransactionFromCSVRow(strings.Split(text, ","))
 					if err != nil {
 						return errors.New(fmt.Sprintf("invalid file data: %v", err))

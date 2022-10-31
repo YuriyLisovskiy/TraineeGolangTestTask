@@ -24,6 +24,8 @@ const (
 	DefaultAppPageSize           = 30
 	DefaultGinMaxMultipartMemory = 8 << 22 // 32 mb
 	DefaultGinShutdownTimeout    = 5
+
+	MaxRowsPerDbCreateRequest = 1500
 )
 
 type Application struct {
