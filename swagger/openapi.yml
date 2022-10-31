@@ -78,7 +78,7 @@ paths:
       tags:
         - transactions
       summary: Upload CSV file with transactions
-      description: Saves transactions to the database. Size of CSV file should not exceed 4 GB.
+      description: Saves transactions to the database. Uploading large files takes some time.
       operationId: transactionsUpload
       requestBody:
         content:
