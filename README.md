@@ -7,8 +7,7 @@ But you can start these two containers separately.
 
 #### REST API
 REST API is a CLI application based on [Gin](https://github.com/gin-gonic/gin) web framework.
-The app serves three endpoints, as described [here](#documentation). Upload of large files
-(up to 4 GB) is available.
+The app serves three endpoints, as described [here](#documentation).
 
 The default constant values that are used for application configuration can be changed
 with help of the following environment variables:
