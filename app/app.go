@@ -25,7 +25,7 @@ const (
 	DefaultGinMaxMultipartMemory = 8 << 22 // 32 mb
 	DefaultGinShutdownTimeout    = 5
 
-	MaxRowsPerDbCreateRequest = 1500
+	MaxRowsPerDbCreateRequest = 2500
 )
 
 type Application struct {

@@ -9,6 +9,10 @@ services:
     depends_on:
       - postgres_database
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 100M
   postgres_database:
     image: "postgres:15"
     ports:

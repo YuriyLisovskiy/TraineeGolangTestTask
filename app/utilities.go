@@ -2,17 +2,41 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"TraineeGolangTestTask/repositories"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
 func ConnectToPostgreSQLWithEnv() (*gorm.DB, error) {
+	config := gorm.Config{}
+	ginMode := os.Getenv(gin.EnvGinMode)
+	if ginMode != gin.ReleaseMode {
+		config.Logger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             200 * time.Millisecond,
+				LogLevel:                  logger.Silent,
+				IgnoreRecordNotFoundError: false,
+				Colorful:                  true,
+			},
+		)
+	}
+
+	userSchema := os.Getenv("POSTGRES_USER_SCHEMA")
+	if userSchema != "" {
+		config.NamingStrategy = schema.NamingStrategy{
+			TablePrefix: fmt.Sprintf("%s.", userSchema),
+		}
+	}
+
 	port, err := strconv.Atoi(getEnvOrDefault("POSTGRES_PORT", "5432"))
 	if err != nil {
 		return nil, err
@@ -26,14 +50,6 @@ func ConnectToPostgreSQLWithEnv() (*gorm.DB, error) {
 		getEnvOrDefault("POSTGRES_DB_NAME", ""),
 		port,
 	)
-	config := gorm.Config{}
-	userSchema := os.Getenv("POSTGRES_USER_SCHEMA")
-	if userSchema != "" {
-		config.NamingStrategy = schema.NamingStrategy{
-			TablePrefix: fmt.Sprintf("%s.", userSchema),
-		}
-	}
-
 	db, err := gorm.Open(postgres.Open(dsn), &config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to the database: %v", err)
